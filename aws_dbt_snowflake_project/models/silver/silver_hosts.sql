@@ -1,3 +1,4 @@
+{# This model transforms the bronze hosts data into a more refined format with pure SQL without macros #}
 {{ config(materialized='incremental', unique_key='HOST_ID' ) }}
 
 SELECT 
