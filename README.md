@@ -9,6 +9,7 @@ The pipeline processes Airbnb listings, bookings, and hosts data through a medal
 ## 🏗️ Architecture
 
 ### Data Flow
+
 ```
 Source Data (CSV) → AWS S3 → Snowflake (Staging) → Bronze Layer → Silver Layer → Gold Layer
                                                            ↓              ↓           ↓
@@ -34,28 +35,48 @@ Source Data (CSV) → AWS S3 → Snowflake (Staging) → Bronze Layer → Silver
 ### Medallion Architecture
 
 #### 🥉 Bronze Layer (Raw Data)
+
 Raw data ingested from staging with minimal transformations:
+
 - `bronze_bookings` - Raw booking transactions
 - `bronze_hosts` - Raw host information
 - `bronze_listings` - Raw property listings
 
+#### Bronze lineage
+
+![Bronze bookings lineage](assets/bronze_bookings_lineage.png)
+
 #### 🥈 Silver Layer (Cleaned Data)
+
 Cleaned and standardized data:
+
 - `silver_bookings` - Validated booking records
 - `silver_hosts` - Enhanced host profiles with quality metrics
 - `silver_listings` - Standardized listing information with price categorization
 
 #### 🥇 Gold Layer (Analytics-Ready)
+
 Business-ready datasets optimized for analytics:
+
 - `obt` (One Big Table) - Denormalized fact table joining bookings, listings, and hosts
 - `fact` - Fact table for dimensional modeling
 - Ephemeral models for intermediate transformations
 
+#### Gold lineage
+
+![One Big Table lineage](assets/obt_Lineage.png)
+
 ### Snapshots (SCD Type 2)
+
 Slowly Changing Dimensions to track historical changes:
+
 - `dim_bookings` - Historical booking changes
 - `dim_hosts` - Historical host profile changes
 - `dim_listings` - Historical listing changes
+
+### Snowflake Schema View
+
+![Snowflake database schema](assets/snowflake_db_schema.png)
 
 ## 📁 Project Structure
 
@@ -64,7 +85,12 @@ AWS_DBT_Snowflake/
 ├── README.md                           # This file
 ├── pyproject.toml                      # Python dependencies
 ├── main.py                             # Main execution script
-│
+|
+├── assets/                             # data lineage and snowflake schema screenshots
+│   ├── bronze_bookings_lineage.png
+│   ├── obt_lineage.png
+│   └── snowflake_db_schema.png
+|
 ├── SourceData/                         # Raw CSV data files
 │   ├── bookings.csv
 │   ├── hosts.csv
@@ -134,12 +160,14 @@ AWS_DBT_Snowflake/
 ### Installation
 
 1. **Clone the Repository**
+
    ```bash
    git clone <repository-url>
    cd AWS_DBT_Snowflake
    ```
 
 2. **Create Virtual Environment**
+
    ```bash
    python -m venv .venv
    .venv\Scripts\Activate.ps1  # Windows PowerShell
@@ -148,6 +176,7 @@ AWS_DBT_Snowflake/
    ```
 
 3. **Install Dependencies**
+
    ```bash
    pip install -r requirements.txt
    # or using pyproject.toml
@@ -160,8 +189,9 @@ AWS_DBT_Snowflake/
    - `sqlfmt>=0.0.3`
 
 4. **Configure Snowflake Connection**
-   
+
    Create `~/.dbt/profiles.yml`:
+
    ```yaml
    aws_dbt_snowflake_project:
      outputs:
@@ -179,14 +209,15 @@ AWS_DBT_Snowflake/
    ```
 
 5. **Set Up Snowflake Database**
-   
+
    Run the DDL scripts to create tables:
+
    ```bash
    # Execute DDL/ddl.sql in Snowflake to create staging tables
    ```
 
 6. **Load Source Data**
-   
+
    Load CSV files from `SourceData/` to Snowflake staging schema:
    - `bookings.csv` → `AIRBNB.STAGING.BOOKINGS`
    - `hosts.csv` → `AIRBNB.STAGING.HOSTS`
@@ -197,22 +228,26 @@ AWS_DBT_Snowflake/
 ### Running dbt Commands
 
 1. **Test Connection**
+
    ```bash
    cd aws_dbt_snowflake_project
    dbt debug
    ```
 
 2. **Install Dependencies**
+
    ```bash
    dbt deps
    ```
 
 3. **Run All Models**
+
    ```bash
    dbt run
    ```
 
 4. **Run Specific Layer**
+
    ```bash
    dbt run --select bronze.*      # Run bronze models only
    dbt run --select silver.*      # Run silver models only
@@ -220,16 +255,19 @@ AWS_DBT_Snowflake/
    ```
 
 5. **Run Tests**
+
    ```bash
    dbt test
    ```
 
 6. **Run Snapshots**
+
    ```bash
    dbt snapshot
    ```
 
 7. **Generate Documentation**
+
    ```bash
    dbt docs generate
    dbt docs serve
@@ -243,7 +281,9 @@ AWS_DBT_Snowflake/
 ## 🎯 Key Features
 
 ### 1. Incremental Loading
+
 Bronze and silver models use incremental materialization to process only new/changed data:
+
 ```sql
 {{ config(materialized='incremental') }}
 {% if is_incremental() %}
@@ -252,26 +292,34 @@ Bronze and silver models use incremental materialization to process only new/cha
 ```
 
 ### 2. Custom Macros
+
 Reusable business logic:
+
 - **`tag()` macro**: Categorizes prices into 'low', 'medium', 'high'
   ```sql
   {{ tag('CAST(PRICE_PER_NIGHT AS INT)') }} AS PRICE_PER_NIGHT_TAG
   ```
 
 ### 3. Dynamic SQL Generation
+
 The OBT (One Big Table) model uses Jinja loops for maintainable joins:
+
 ```sql
 {% set configs = [...] %}
 SELECT {% for config in configs %}...{% endfor %}
 ```
 
 ### 4. Slowly Changing Dimensions
+
 Track historical changes with timestamp-based snapshots:
+
 - Valid from/to dates automatically maintained
 - Historical data preserved for point-in-time analysis
 
 ### 5. Schema Organization
+
 Automatic schema separation by layer:
+
 - Bronze models → `AIRBNB.BRONZE.*`
 - Silver models → `AIRBNB.SILVER.*`
 - Gold models → `AIRBNB.GOLD.*`
@@ -279,6 +327,7 @@ Automatic schema separation by layer:
 ## 📈 Data Quality
 
 ### Testing Strategy
+
 - Source data validation tests
 - Unique key constraints
 - Not null checks
@@ -286,7 +335,9 @@ Automatic schema separation by layer:
 - Custom business rule tests
 
 ### Data Lineage
+
 dbt automatically tracks data lineage, showing:
+
 - Upstream dependencies
 - Downstream impacts
 - Model relationships

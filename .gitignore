@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 aws_dbt_snowflake_project/profiles.yml
+README_personal.md
 
 # Virtual environments
 .venv
